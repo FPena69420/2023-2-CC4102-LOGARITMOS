@@ -69,7 +69,7 @@ void replaceIntsInFile(const char* filename, int i, int N, const int32_t* newVal
     fclose(file);
 }
 
-int x_write(const char* some_file, // name of the file to be written in
+void x_write(const char* some_file, // name of the file to be written in
             int index, // starting index of the elements to be written (0 onwards) 
             int number_of_elements, // number of elements to be written
             const int32_t* integer_array // array of integers to be written
