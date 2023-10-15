@@ -14,13 +14,13 @@ Me tomé la libertad de agregar más funcionalidad al código de la tarea. De ah
 
     ```1 (dec) -> 00 00 00 01 (big) -> 01 00 00 00 (lil)```
 
-    ```10 (dec) -> 00 00 00 10 (big) -> 10 00 00 00 (lil)```
+    ```16 (dec) -> 00 00 00 10 (big) -> 10 00 00 00 (lil)```
 
     ```1100 (dec) -> 00 00 04 4C (big) -> 4C 04 00 00 (lil)```
     
     etc. Esto no afecta su valor en decimal, eso sí.
 
-    Lo que es importante, es que cada usuario define y tiene que tener bien claro cuál es el tamaño de los nodos del R-tree, porque en la archivo binario no se añade ninguna clase de chequeo, y no existen los caracteres `\n` (newline). Antes habíamos convenido que cada nodo estaría delimitado por `\n` (newline), pero como esto ya no es posible, recomiendo tener las siguientes constantes en el programa:
+    Lo que es importante, es que cada usuario define y tiene que tener bien claro cuál es el tamaño de los nodos del R-tree, porque en el archivo binario no se añade ninguna clase de chequeo, y no existen los caracteres `\n` (newline). Antes habíamos convenido que cada nodo estaría delimitado por `\n` (newline), pero como esto ya no es posible, recomiendo tener las siguientes constantes en el programa:
 
     ```const int REF= 20 // esto es una constante.```
     
@@ -41,7 +41,7 @@ Me tomé la libertad de agregar más funcionalidad al código de la tarea. De ah
     ***¡¡¡ESTO ES SÚPER IMPORTANTE QUE LO TENGAN CLARO!!!***
 
 + ### x_write
-    Escribe datos al disco. Ver el código para saber como funciona.
+    Escribe datos al archivo. Ver el código para saber como funciona.
 
 + ### x_get2
     En el código de la tarea ya viene definida una estructura `Node`, que almacena 5 valores `{x1, y1, x2, y2, l}`. A diferencia de `x_get`, esta función lee el archivo binario y retorna un array de `Node`s. Esto facilita el uso de la función `compare_nodes`, que compara los valores de 2 `Node`s y se puede utiliar en `qsort`. ***NO OLVIDAR LIBERAR LA MEMORIA UTILIZADA CON*** `free` ***LUEGO DE UTILIZAR ESTA FUNCIÓN.***

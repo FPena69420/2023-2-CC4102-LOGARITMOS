@@ -102,7 +102,8 @@ void x_write(const char* some_file, // name of the file to be written in
     replaceIntsInFile(some_file, index, number_of_elements, integer_array);
 }
 
-//Deprecated. See x_get2.
+//Returns an array with {number_of_elements} 4-byte ints, taken from the binary file {some_file}, 
+//starting from index {index}.
 int* x_get(const char* some_file, int index, int number_of_elements) {
     FILE *file = fopen(some_file, "rb"); // "rb" mode for reading in binary
     if (file == NULL) {
