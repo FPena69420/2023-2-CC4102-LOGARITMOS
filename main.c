@@ -9,7 +9,8 @@ struct Node {
     int y1;
     int x2;
     int y2;
-    int l; //line of son node.
+    int l; // line of child node.
+    int c; // number of child nodes
 };
 
 
@@ -77,19 +78,24 @@ void printArray(int* some_array,
 
 //Prints {size} {Node}s from {some_array}.
 void printNodes(struct Node* some_node_array, // the array of nodes to be printed
-                int size // the number of nodes to print
+                int size, // the number of nodes to print
+                int vanish_min,
+                int vanish_max
                 ) {
 
     if (some_node_array != NULL) {
         printf("PRINTING NODES:\n");
         for (int i = 0; i < size; i++) {
-            printf("Node %d: x1=%d, y1=%d, x2=%d, y2=%d, l=%d\n", 
-            i, 
-            some_node_array[i].x1, 
-            some_node_array[i].y1, 
-            some_node_array[i].x2, 
-            some_node_array[i].y2, 
-            some_node_array[i].l);
+            if (i<= vanish_min || vanish_max<= i) {
+                printf("Node %d: x1=%d, y1=%d, x2=%d, y2=%d, l=%d, c=%d\n", 
+                i, 
+                some_node_array[i].x1, 
+                some_node_array[i].y1, 
+                some_node_array[i].x2, 
+                some_node_array[i].y2, 
+                some_node_array[i].l,
+                some_node_array[i].c);
+            }
         }
         printf("\n");
     }
@@ -149,6 +155,45 @@ void printBinaryFile2(const char *filename, // path of the file to be opened
         }
     }
     printf("-EOF-\n\n");
+
+    fclose(file);
+}
+
+void printIntsFromFile(const char* filename, 
+                       int col, 
+                       int vanishing_min, 
+                       int vanishing_max
+                       ) {
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        perror("Error opening the file");
+        return;
+    }
+
+    int line_number = 0;
+    int int_value;
+    int printed = 0;
+
+    printf("PRINTING FILE: \n");
+
+    while (fread(&int_value, sizeof(int_value), 1, file) == 1) {
+        if (printed == 0) {
+            if (line_number<= vanishing_min || vanishing_max<= line_number) {printf("Line %d: ", line_number);}
+        }
+        if (line_number<= vanishing_min || vanishing_max<= line_number) {printf("%d ", int_value);}
+        printed++;
+        if (printed == col) {
+            if (line_number<= vanishing_min || vanishing_max<= line_number) {printf("\n");}
+            printed = 0;
+            line_number++;
+        }
+    }
+
+    if (printed != 0) {
+        printf("\n");
+    }
+
+    printf("\n");
 
     fclose(file);
 }
@@ -257,10 +302,10 @@ int* array_get_leaves(const char* some_file, int index, int number_of_rectangles
     return elements;
 }
 
-//Parses {N} {Node}s from {some_file}, starting from {index}. Returns an array of them.
-//Remember to free with free().
+//Parses {N} {Node}s from {some_file}, starting from {index} (measured in 4-byte ints). 
+//Returns an array of them. Remember to free with free().
 struct Node* node_get(const char* some_file, // file to open
-                    int index, // index of file to start extracting nodes
+                    int index, // index of file (measured in 4-byte ints) to start extracting nodes
                     int N // number of NODES to extract
                    ) {
     FILE *file = fopen(some_file, "rb"); // "rb" mode for reading in binary
@@ -270,7 +315,7 @@ struct Node* node_get(const char* some_file, // file to open
     if (file!= NULL){
         fseek(file, 0L, SEEK_END);
         size= (uint32_t) ftell(file)/sizeof(uint32_t);
-        if (index + (N * 5) > size) {
+        if (index + (N * 6) > size) {
             perror("Segmentation fault. Attempted to create node from memory outside array.\n");
             fclose(file);
             return NULL;
@@ -296,8 +341,8 @@ struct Node* node_get(const char* some_file, // file to open
     }
 
     for (int i = 0; i < N; i++) {
-        // Read five integers from the file and create a node
-        if (fread(&nodes[i], sizeof(int), 5, file) != 5) {
+        // Read six integers from the file and create a node
+        if (fread(&nodes[i], sizeof(int), 6, file) != 6) {
             perror("Error reading data from the file");
             free(nodes);
             fclose(file);
@@ -321,8 +366,8 @@ struct Node* node_get_leaves(const char* some_file, // file to open
     if (file!= NULL){
         fseek(file, 0L, SEEK_END);
         size= (uint32_t) ftell(file)/sizeof(uint32_t);
-        if (index + (N * 4) > size) {
-            perror("Segmentation fault. Attempted to create node from memory outside array.\n");
+        if (index + (N * 6) > size) {
+            perror("Segmentation fault. Attempted to create node from memory outside file.\n");
             fclose(file);
             return NULL;
         }
@@ -355,10 +400,111 @@ struct Node* node_get_leaves(const char* some_file, // file to open
             return NULL;
         }
         nodes[i].l= 0;
+        nodes[i].c= 0;
     }
 
     fclose(file);
     return nodes;
+}
+
+// Function to create parents from the binary file
+int create_parents(const char *file_name, 
+                   int M // number of children for each node
+                   ) {
+
+    // Initialize variables
+    int size= 0;
+    int index = 0;
+    int nodes_read = M;
+    int pos= 0;
+    int nodes_created= 0;
+
+    while (nodes_created!= 1) {
+        nodes_read= M;
+        pos= 0;
+        nodes_created= 0;
+
+        FILE *file = fopen(file_name, "rb+");
+    
+        if (file == NULL) {
+            perror("File open error");
+            return 0; // Return 0 to indicate failure
+        }
+
+        // Find the current size of the file
+        fseek(file, 0, SEEK_END);
+        size = (uint32_t) ftell(file)/sizeof(uint32_t); // size in 4-byte ints
+
+        // Close the file
+        fclose(file);
+
+        while (index < size) {
+
+            // Check if there are enough bytes to read M * 6 integers
+            if (index + M * 6 > size) {
+                nodes_read = (size - index) / 6;
+            }
+
+            // Read nodes_read * 6 4-byte integers from the file
+            // int* node_array = (int*)malloc(nodes_read * 6 * sizeof(uint32_t));
+            // if (node_array == NULL) {
+            //     // Handle memory allocation error
+            //     perror("Memory allocation failed");
+            //     return 0; // Return 0 to indicate failure
+            // }
+
+            // fseek(file, index, SEEK_SET);
+            // fread(node_array, sizeof(int), nodes_read * 6, file);
+
+            struct Node* node_array= node_get(file_name, index, nodes_read);
+
+            // Calculate the minimum x1, y1, and maximum x2, y2
+            int min_x1 = node_array[0].x1;
+            int min_y1 = node_array[1].y1;
+            int max_x2 = node_array[2].x2;
+            int max_y2 = node_array[3].y2;
+
+            for (int i = 0; i < nodes_read; i++) {
+                int node_x1 = node_array[i].x1;
+                int node_y1 = node_array[i].y1;
+                int node_x2 = node_array[i].x2;
+                int node_y2 = node_array[i].y2;
+
+                min_x1 = (node_x1 < min_x1) ? node_x1 : min_x1;
+                min_y1 = (node_y1 < min_y1) ? node_y1 : min_y1;
+                max_x2 = (node_x2 > max_x2) ? node_x2 : max_x2;
+                max_y2 = (node_y2 > max_y2) ? node_y2 : max_y2;
+            }
+
+            // Create a Node with the calculated values
+            struct Node node;
+            node.x1 = min_x1;
+            node.y1 = min_y1;
+            node.x2 = max_x2;
+            node.y2 = max_y2;
+            node.l = index;
+            node.c = nodes_read * 6;
+
+            // printNodes(&node, 1, 0, 0);
+
+            // Write the Node to the file
+            x_write(file_name, size + pos, 6, &node); // modify size
+            nodes_created ++;
+
+            // printIntsFromFile(file_name, 6, 50, 1023);
+
+            // Update index and nodes_read
+            index += nodes_read * 6 ;
+            nodes_read = M;
+            pos+= 6;
+
+            // Free the node_array
+            free(node_array);
+            }
+    }
+
+    // Return 1 if exactly one node was written
+    return size + pos - 6;
 }
 
 //rotar/voltear un cuadrante apropiadamente
@@ -414,14 +560,22 @@ int compare_nodes(const void *a, const void *b) {
     }
 }
 
+int x_size_ints(void* some_struct) {
+    return (int) sizeof(some_struct) / sizeof(uint32_t);
+}
 
+int x_size_nodes(void* some_struct) {
+    return (int) sizeof(some_struct) / sizeof(uint32_t);
+}
 
 int main() {
-    const char* filename = "recs/r_10.bin";
+    const char* RECTANGLES = "recs/r_10.bin";
+    const char* R_TREE= "r_tree.bin"; 
     const int N_OF_NODES= exp2(10);
     const int M_OF_CHILDREN= 100;
+    const int INTS_FOR_NODE= 6;
 
-    remove("r_tree.bin");
+    remove(R_TREE);
 
     // int32_t newValues2[]= {16, 17, 18, 19, 20,
     //                        189, 3, 211, 15, 9,
@@ -448,21 +602,19 @@ int main() {
 
     // return 0;
 
-    struct Node* leaves= node_get_leaves(filename, 0, N_OF_NODES);
-    printNodes(leaves, 10);
+    struct Node* leaves= node_get_leaves(RECTANGLES, 0, N_OF_NODES);
 
-    int* leaves_array= array_get_leaves(filename, 0, N_OF_NODES);
-    printArray(leaves_array, 50);
-
-    qsort(leaves, 2, sizeof(struct Node), compare_nodes);
-    printNodes(leaves, 10);
-
-    x_write("r_tree.bin", 0, exp2(10), leaves);
-    printBinaryFile2("r_tree.bin", 0, 500, 5);
+    qsort(leaves, N_OF_NODES, sizeof(struct Node), compare_nodes);
+    
+    printNodes(leaves, N_OF_NODES, 50, N_OF_NODES - 50);
+    x_write(R_TREE, 0, exp2(10) * INTS_FOR_NODE, leaves);
+    printIntsFromFile(R_TREE, INTS_FOR_NODE, 50, N_OF_NODES - 50);
     
     free(leaves);
 
-    free(leaves_array);
-
+    int root_index= create_parents(R_TREE, M_OF_CHILDREN);
+    printIntsFromFile(R_TREE, INTS_FOR_NODE, 50, N_OF_NODES);
+    printf("POSITION OF ROOT OF R-TREE= %d\n", root_index);
+    
     return 0;
 }
