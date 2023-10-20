@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 //Struct to represent a rectangle node. {x1, y1, x2, y2, l, c} 
 struct Node {
@@ -423,10 +424,10 @@ int rectangles_intersect(struct Node* rect1, struct Node* rect2) {
 
 
 int search(const char* file_name,
-                    struct Node* s_rect,
+                    struct Node* s_rect, // rectangle to be asked for
                     uint32_t root_index, // index where the root is located
                     uint32_t* write_index, // position of the array in which a node is stored
-                    struct Node* array // has all the space needed to store the results
+                    struct Node* result_array // has all the space needed to store the results
                     ){
     
     struct Node* root= node_get(file_name, root_index, 1);
@@ -437,11 +438,11 @@ int search(const char* file_name,
     if (rectangles_intersect(s_rect, root)) {
         if (0<= root->l) {
             for (int children= 0; children< root->c; children++) {
-                next_to_write= search(file_name, s_rect, root->l + children * 6, write_index, array);
+                next_to_write= search(file_name, s_rect, root->l + children * 6, write_index, result_array);
             }
         }
         else {
-            array[next_to_write]= *root; // Copy the struct Node
+            result_array[next_to_write]= *root; // Copy the struct Node
             (*write_index)++;
         }
     }
@@ -449,9 +450,37 @@ int search(const char* file_name,
     return (int) *write_index;
 }
 
+double ask (const char* question_file,
+          const char* r_tree,
+          int root_index,
+          struct Node* result_array
+          ) {
+    FILE *file = fopen(question_file, "rb"); // "rb" mode for reading in binary
+
+    int question_file_size= 0;
+    int write_index= 0;
+    int result_index;
+
+    if (file!= NULL){
+        fseek(file, 0L, SEEK_END);
+        question_file_size= (uint32_t) ftell(file)/sizeof(uint32_t);
+    }
+    fclose(file);
+
+    for (int i= 0; i< question_file_size; i+= 4) {
+        write_index= 0;
+
+        struct Node* question= node_get_leaves(question_file, i, 1);
+        //printNodes(question, 1, 0, 0);
+        result_index= search(r_tree, question, root_index, &write_index, result_array);
+        // printNodes(result_array, result_index, 5, result_index - 5);
+    }
+}
+
 int main() {
     const char* RECTANGLES = "recs/r_12.bin";
     const char* R_TREE= "r_tree.bin"; 
+    const char* QUESTIONS= "recs/q_12.bin";
     const int N_OF_NODES= exp2(12);
     const int M_OF_CHILDREN= 100;
     const int INTS_FOR_NODE= 6;
@@ -462,23 +491,26 @@ int main() {
 
     qsort(leaves, N_OF_NODES, sizeof(struct Node), compare_nodes); // sort the leaves using compare_nodes
     
-    // printNodes(leaves, N_OF_NODES, 50, N_OF_NODES - 50);
     x_write(R_TREE, 0, N_OF_NODES * INTS_FOR_NODE, leaves); // write the leaves to the r-tree
-    // printFile(R_TREE, INTS_FOR_NODE, 50, N_OF_NODES - 51);
     
     free(leaves); // free the memory the leaves were using
 
     int root_index= create_parents(R_TREE, M_OF_CHILDREN); // create all parents of the tree
                                                            // and return the index of the root
 
-    // printFile(R_TREE, INTS_FOR_NODE, 50, N_OF_NODES - 1);
     printf("POSITION OF ROOT OF R-TREE= %d\n\n", root_index);
 
     struct Node result_array[N_OF_NODES];
-    struct Node question= {21, 13, 499983, 499989, 0, 0};
-    int write_index= 0;
-    int result_index= search(R_TREE, &question, root_index, &write_index, result_array);
-    printNodes(result_array, result_index, 10, result_index - 10);
-    
+
+    double cpu_time_used;
+    clock_t c_start, c_end;
+
+    c_start= clock(); 
+    ask(QUESTIONS, R_TREE, root_index, result_array);
+    c_end= clock();
+
+    cpu_time_used= ((double) (c_end - c_start)/ CLOCKS_PER_SEC);
+    printf("time used for questions: %f", cpu_time_used);
+
     return 0;
 }
