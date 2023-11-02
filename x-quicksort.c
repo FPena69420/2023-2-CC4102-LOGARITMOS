@@ -45,6 +45,8 @@ void quickSort(long long arr[], int low, int high) {
     }
 }
 
+//Populates an array of long longs with numbers in the range [0, smaller_than] including 
+//both ends.
 void populate_array(long long arr[], int size, long long smaller_than) {
     for (int i= 0; i< size; i++) {
         long long number= (long long) rand() % (smaller_than + 1);
@@ -58,8 +60,6 @@ int main() {
     long long POWER_TWO= exp2(3);
     int n = 10;
     long long arr[n];
-
-    // NOTE THAT THIS PROGRAM DOES NOT WORK WHEN n > POWER_TWO
 
     populate_array(arr, n, POWER_TWO);
 
