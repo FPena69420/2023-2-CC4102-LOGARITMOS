@@ -478,10 +478,10 @@ double ask (const char* question_file,
 }
 
 int main() {
-    const char* RECTANGLES = "recs/r_12.bin";
+    const char* RECTANGLES = "recs/r_17.bin";
     const char* R_TREE= "r_tree.bin"; 
-    const char* QUESTIONS= "recs/q_12.bin";
-    const int N_OF_NODES= exp2(12);
+    const char* QUESTIONS= "recs/q_17.bin";
+    const int N_OF_NODES= exp2(17);
     const int M_OF_CHILDREN= 100;
     const int INTS_FOR_NODE= 6;
 
@@ -510,7 +510,7 @@ int main() {
     c_end= clock();
 
     cpu_time_used= ((double) (c_end - c_start)/ CLOCKS_PER_SEC);
-    printf("time used for questions: %f", cpu_time_used);
+    printf("time used for questions: %f\n", cpu_time_used);
 
     return 0;
 }
