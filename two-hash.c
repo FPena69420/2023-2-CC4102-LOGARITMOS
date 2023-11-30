@@ -9,7 +9,11 @@
 
 // 2**l= m
 
-int DEBUG= 1;
+#define FAST_HASH 100
+#define UNI_HASH 101
+
+int DEBUG= 0;
+int HASH= FAST_HASH;
 
 // universal hash function
 long long uni_hash(int a, int b, int p, int m, int x) {
@@ -267,17 +271,22 @@ int main() {
     uint64_t m = 1 << l;
     // m is equal to 2^l
 
-    HashTable* the_hash_table= create_hash_table(m);  // hash table of m= 2^l cells
+    HashTable* the_hash_table;
+
+    if (HASH== UNI_HASH) {the_hash_table= create_hash_table(m);}  // hash table of m= 2^l cells
+    if (HASH== FAST_HASH) {the_hash_table= create_hash_table(1<<(k-l));}  // hash table of m= 2^l cells
 
     uint64_t a = 1 + rand() % p;  // a is randomized for every iteration
     uint64_t b = rand() % p;  // b is also
 
-    printf("\nRunning hash table with:\np=%lu\nm= %lu\na= %lu\nb= %lu\n\n", p, m, a, b);
+    printf("\nRunning hash table with:\na= %lu\nb= %lu\nk= %ld\np= %lu\nl= %d\nm= %lu\n", a, b, k, p, l, m);
 
     // inserts every point in the point array in the hash table
     for(int i= 0; i< n; i++) {
         uint64_t quadrant= get_quadrant(point_array[i], d);
-        long long index_to_insert= uni_hash(a, b, p, m, quadrant);
+        long long index_to_insert;
+        if (HASH== UNI_HASH) {index_to_insert= uni_hash(a, b, p, m, quadrant);}
+        if (HASH== FAST_HASH) {index_to_insert= fast_hash(a, b, k, l, quadrant);}
         insert_point(the_hash_table, point_array[i], index_to_insert);
     }
 
@@ -289,7 +298,9 @@ int main() {
     // smallest distance between them
     for(int i= 0; i< n; i++) {
         uint64_t quadrant= get_quadrant(point_array[i], d);
-        long long hashed_index= uni_hash(a, b, p, m, quadrant);
+        long long hashed_index;
+        if (HASH== UNI_HASH) {hashed_index= uni_hash(a, b, p, m, quadrant);}
+        if (HASH== FAST_HASH) {hashed_index= fast_hash(a, b, k, l, quadrant);}
         float minimum_distance_9_square= compare_to_neighbors(the_hash_table, point_array[i], hashed_index, cells_for_row);
 
         if (minimum_distance_9_square < minimum_distance_global) {minimum_distance_global= minimum_distance_9_square;}
